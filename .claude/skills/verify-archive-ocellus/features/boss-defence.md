@@ -9,7 +9,7 @@ Ocellus has the wiki's phase 3 defence: Defence level 250, stab 150, slash 100, 
 
 ## How to get to it (user POV)
 
-- Open `http://127.0.0.1:8002/?setup=ranged`, wield Ralos from inventory slot 0, light the special orb and click Ocellus. Light the orb again after the first Division fires, so the next throw is a second Division.
+- Open `http://127.0.0.1:8002/?setup=ranged`, wield Ralos from inventory slot 3, light the special orb and click Ocellus. Light the orb again after the first Division fires, so the next throw is a second Division.
 
 ## Driving it with agent-browser
 
@@ -19,7 +19,7 @@ Preconditions:
 - Pixel positions are for the 1280x800 viewport and match the loadout recipe's `LOADOUT_` constants.
 
 - **Start.** `snapshot().fight.boss.defence` is 250.
-- **First Division.** Click the inventory tab at (1164, 745), click slot 0 at (1125, 508) to wield Ralos, click the special orb at (1140, 157), then click Ocellus 10 px left of and 160 px above the canvas centre. Wait until `specialEnergy` is 50, then click the special orb again. Once `log().rows` holds two `player-hit-judged` events, Defence reads 176. With `seed=20` both glaives deal damage (2 and 17).
+- **First Division.** Click the inventory tab at (1164, 745), click slot 3 at (1242, 508) to wield Ralos, click the special orb at (1140, 157), then click Ocellus 10 px left of and 160 px above the canvas centre. Wait until `specialEnergy` is 50, then click the special orb again. Once `log().rows` holds two `player-hit-judged` events, Defence reads 176. With `seed=20` both glaives deal damage (2 and 17).
 - **Second Division.** Once `log()` holds four `player-hit-judged` events, `specialEnergy` is 0 and Defence reads 150. Both glaives dealt damage (4 and 5), so without the floor Defence would read 102. In the last run they landed at P4 tick 21, inside the explosion window, as `reduced`: 4 and 5 kept 1 and 2, which still drain.
 - **Scripted.** `scripts/verify.sh browser` runs these steps after the loadout check and records `divisionStopsAtDefenceFloor` in `observed.json`. The check needs Defence 250, 176 and 150 and four glaives, `passed` or `reduced`, that each requested damage, so a run where a glaive misses fails instead of passing on a smaller drain.
 

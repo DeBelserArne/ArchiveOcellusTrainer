@@ -12,6 +12,13 @@ export const CHANGELOG: Changelog = [
     ],
   },
   {
+    version: "2026.10.25.3",
+    notes: [
+      "Your bag now sits where you like it: the swap weapon top left, the rest of the other set down the first two columns, Ralos in the top right corner, and the potions in the slots that are left.",
+      "The ring swap is gone, so the ring stays as you wear it and a sixth super restore takes its place. Settings, then Inventory, puts the old fill order back.",
+    ],
+  },
+  {
     version: "2026.10.25.1",
     notes: [
       "Melee attacks always hit a void rift for your max hit, as ranged attacks already did.",

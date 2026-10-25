@@ -1,6 +1,6 @@
 # Settings menu and run results
 
-The drill controls sit behind one Settings button at the bottom left, beside a Restart button that is always visible. The menu holds Setup, Focus, Seed, Keybinds, Sound effects, Area sounds, Invincible and What's new, and closes on a second click, Escape or a click outside it. When a run ends, a result panel over the game shows "Ocellus defeated" with the P4 time, or "You died" with the P4 tick, and offers Restart and Retry seed. `bosshp=N` in the link starts P4 at N boss hitpoints, so a tester can reach the kill result fast.
+The drill controls sit behind one Settings button at the bottom left, beside a Restart button that is always visible. The menu holds Setup, Inventory, Focus, Seed, Keybinds, Sound effects, Area sounds, Invincible and What's new, and closes on a second click, Escape or a click outside it. When a run ends, a result panel over the game shows "Ocellus defeated" with the P4 time, or "You died" with the P4 tick, and offers Restart and Retry seed. `bosshp=N` in the link starts P4 at N boss hitpoints, so a tester can reach the kill result fast.
 
 ## Sub-features
 

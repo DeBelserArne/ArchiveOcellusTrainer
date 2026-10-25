@@ -59,6 +59,16 @@ describe("Settings menu", () => {
     expect(navigation.assigned).toEqual(["http://localhost/?setup=melee&focus=full-fight"]);
   });
 
+  test("picking the other inventory layout reloads the drill with the layout in the link", () => {
+    const navigation = captureNavigation();
+    const page = loadPage("/?seed=3");
+    page.click("settings");
+    choose("inventory", "wiki-order", page);
+    page.close();
+    navigation.restore();
+    expect(navigation.assigned).toEqual(["http://localhost/?setup=ranged&inventoryLayout=wiki-order&focus=full-fight"]);
+  });
+
   test("picking Rifts as the Focus loads the rifts drill, whose first boss step is P4 tick 62, five ticks before the rifts spawn", () => {
     const navigation = captureNavigation();
     const menuPage = loadPage("/?seed=1");

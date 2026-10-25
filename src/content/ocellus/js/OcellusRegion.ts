@@ -185,7 +185,7 @@ export class OcellusRegion extends Region {
       (target) => target instanceof Ocellus && target.outOfMeleeReach(),
     );
     const ocellus: Ocellus = new Ocellus(this, this.config, player, () => this.invincible);
-    dress(player, this.config.choices.setup.option.value);
+    dress(player, this.config.choices.setup.option.value, this.config.choices.inventoryLayout.option.value);
     Object.values(sounds).forEach((sound) => SoundCache.preload(cacheSound(sound.value)));
     const views: Views = {
       field: new VoidField(this),

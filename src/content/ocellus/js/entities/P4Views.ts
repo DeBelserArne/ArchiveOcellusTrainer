@@ -282,6 +282,17 @@ const SPAWN_LOOK: Readonly<Record<VoidKind, number>> = { "inner-void": ORB_LOOK.
 
 type Cue = Readonly<{ spotAnim: number; loops: boolean }>;
 
+const ORB_CUES: readonly Cue[] = [
+  { spotAnim: SPAWN_LOOK["inner-void"], loops: false },
+  { spotAnim: SPAWN_LOOK["outer-void"], loops: false },
+  { spotAnim: ORB_LOOK.idle.value, loops: true },
+  { spotAnim: ORB_LOOK.despawn.value, loops: false },
+];
+const FRAGMENT_CUES: readonly Cue[] = [
+  { spotAnim: ORB_LOOK.tell.value, loops: false },
+  { spotAnim: ORB_LOOK.regain.value, loops: false },
+];
+
 class Playing {
   ended = false;
   readonly model: CacheRenderInstancedModel;
@@ -299,7 +310,7 @@ class Playing {
 class SpotAnimModel implements Model {
   private playing: Playing | null = null;
 
-  constructor(private readonly renderable: Renderable, private readonly cue: () => Cue | null) {}
+  constructor(private readonly renderable: Renderable, private readonly cue: () => Cue | null, private readonly cues: readonly Cue[]) {}
 
   draw(scene: THREE.Scene, clockDelta: number, tickPercent: number, location: Location3, angleRadians: number, pitchRadians: number, visible: boolean, modelOffsets: Location3[]): void {
     const cue = this.cue();
@@ -319,7 +330,15 @@ class SpotAnimModel implements Model {
     return this.playing?.model.getWorldPosition() ?? new THREE.Vector3();
   }
 
-  async preload(): Promise<void> {}
+  /** The SDK builds a spotanim's geometry pool on its first draw, which stalls that frame, so every cue an entity can play is warmed under the load screen. */
+  async preload(): Promise<void> {
+    const scene = new THREE.Scene();
+    for (const cue of this.cues) {
+      const warm = new Playing(this.renderable, cue);
+      await warm.model.preload();
+      warm.model.destroy(scene);
+    }
+  }
 }
 
 export class OrbView extends Entity {
@@ -360,7 +379,7 @@ export class OrbView extends Entity {
   }
 
   protected override create3dModel(): Model {
-    return new SpotAnimModel(this, () => this.shown?.cue ?? null);
+    return new SpotAnimModel(this, () => this.shown?.cue ?? null, ORB_CUES);
   }
 }
 
@@ -395,7 +414,7 @@ export class FragmentFlash extends Entity {
   override draw(): void {}
 
   protected override create3dModel(): Model {
-    return new SpotAnimModel(this, () => this.cue);
+    return new SpotAnimModel(this, () => this.cue, FRAGMENT_CUES);
   }
 }
 

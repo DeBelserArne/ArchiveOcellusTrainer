@@ -86,22 +86,22 @@ describe("U1.5 loadouts", () => {
     };
     expect(loadout("ranged")).toEqual({
       equipped: { weapon: 20997, offhand: null, helmet: 27235, chest: 27238, legs: 27241, gloves: 26235, cape: 28951, necklace: 33639, feet: 31097, ring: 28310, ammo: 11212 },
-      inventory: [28922, 22325, 24419, 24420, 24421, 22981, 21295, 29801, 25485, 12695, 22461, 6685, 3024, 12695, 22461, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 3024],
+      inventory: [22325, 22981, 12695, 28922, 24419, 21295, 22461, 6685, 24420, 29801, 3024, 12695, 24421, 22461, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 3024, 3024],
     });
     expect(loadout("melee")).toEqual({
       equipped: { weapon: 22325, offhand: null, helmet: 24419, chest: 24420, legs: 24421, gloves: 22981, cape: 21295, necklace: 29801, feet: 31097, ring: 25485, ammo: 11212 },
-      inventory: [28922, 20997, 27235, 27238, 27241, 26235, 28951, 33639, 28310, 12695, 22461, 6685, 3024, 12695, 22461, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 3024],
+      inventory: [20997, 26235, 12695, 28922, 27235, 28951, 22461, 6685, 27238, 33639, 3024, 12695, 27241, 22461, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 6685, 3024, 6685, 6685, 3024, 3024],
     });
   });
 
-  test("clicking every switch but Ralos wears the melee setup and leaves the Avernic treads on", () => {
+  test("clicking every switch but Ralos wears the melee setup, keeps the ring that was on and leaves the Avernic treads on", () => {
     const drill = startDrill({ selection: { setup: "ranged" } });
     for (const item of [...drill.player().inventory]) {
       if (item !== null && item.cacheItemId !== 28922) item.inventoryLeftClick(drill.player());
     }
     const player = drill.region.snapshot()?.player;
     drill.dispose();
-    expect(player?.equipped).toEqual({ weapon: 22325, offhand: null, helmet: 24419, chest: 24420, legs: 24421, gloves: 22981, cape: 21295, necklace: 29801, feet: 31097, ring: 25485, ammo: 11212 });
+    expect(player?.equipped).toEqual({ weapon: 22325, offhand: null, helmet: 24419, chest: 24420, legs: 24421, gloves: 22981, cape: 21295, necklace: 29801, feet: 31097, ring: 28310, ammo: 11212 });
     expect(player?.inventory.filter((id) => id === 31097)).toEqual([]);
   });
 
@@ -126,7 +126,7 @@ describe("U1.5 loadouts", () => {
     }
     jab.player().currentStats.strength = 118;
     jab.pray("Piety");
-    expect(firstAttack(jab, EAST_OF_SQUARE, { magic: 1, defence: 0, size: 3 }).received).toEqual([[50, "crush"], [25, "crush"], [12, "crush"]]);
+    expect(firstAttack(jab, EAST_OF_SQUARE, { magic: 1, defence: 0, size: 3 }).received).toEqual([[48, "crush"], [24, "crush"], [12, "crush"]]);
     jab.dispose();
 
     const chop = startDrill({ selection: { setup: "melee" } });

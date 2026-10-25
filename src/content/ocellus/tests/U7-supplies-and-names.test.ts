@@ -10,35 +10,45 @@ describe("U7 item names and supplies", () => {
   test("every item the ranged setup carries or wears shows its name in the inventory menu", () => {
     const drill = startDrill({ selection: { setup: "ranged" } });
     const carried = hovers(drill);
-    const helm = drill.player().inventory[2];
+    const helm = drill.player().inventory[4];
     const helmMenu = helm ? menu(drill, helm) : [];
-    for (const item of [...drill.player().inventory].slice(1, 9)) item?.inventoryLeftClick(drill.player());
+    for (const item of [...drill.player().inventory]) {
+      if (item !== null && item.cacheItemId !== 28922 && menu(drill, item)[0]?.startsWith("Equip")) item.inventoryLeftClick(drill.player());
+    }
     const switchedOut = hovers(drill);
     drill.dispose();
 
     expect(helmMenu).toEqual(["Equip Inquisitor's great helm", "Drop Inquisitor's great helm", "Examine Inquisitor's great helm"]);
-    expect(new Set(carried.slice(9))).toEqual(new Set(["Drink Super combat potion", "Drink Bastion Potion", "Drink Saradomin Brew", "Drink Super Restore"]));
-    expect(carried.slice(0, 9)).toEqual([
-      "Equip Tonalztics of Ralos",
+    expect(new Set(carried.filter((name) => name.startsWith("Drink")))).toEqual(new Set(["Drink Super combat potion", "Drink Bastion Potion", "Drink Saradomin Brew", "Drink Super Restore"]));
+    expect(carried.slice(0, 13)).toEqual([
       "Equip Scythe of Vitur",
-      "Equip Inquisitor's great helm",
-      "Equip Inquisitor's hauberk",
-      "Equip Inquisitor's plateskirt",
       "Equip Ferocious gloves",
-      "Equip Infernal cape",
-      "Equip Amulet of rancour",
-      "Equip Ultor ring",
-    ]);
-    expect(switchedOut.slice(0, 9)).toEqual([
+      "Drink Super combat potion",
       "Equip Tonalztics of Ralos",
+      "Equip Inquisitor's great helm",
+      "Equip Infernal cape",
+      "Drink Bastion Potion",
+      "Drink Saradomin Brew",
+      "Equip Inquisitor's hauberk",
+      "Equip Amulet of rancour",
+      "Drink Super Restore",
+      "Drink Super combat potion",
+      "Equip Inquisitor's plateskirt",
+    ]);
+    expect(switchedOut.slice(0, 13)).toEqual([
       "Equip Twisted Bow",
-      "Equip Masori mask (f)",
-      "Equip Masori body (f)",
-      "Equip Masori chaps (f)",
       "Equip Zaryte Vambraces",
+      "Drink Super combat potion",
+      "Equip Tonalztics of Ralos",
+      "Equip Masori mask (f)",
       "Equip Dizana's Quiver",
+      "Drink Bastion Potion",
+      "Drink Saradomin Brew",
+      "Equip Masori body (f)",
       "Equip Necklace of rupture",
-      "Equip Venator ring",
+      "Drink Super Restore",
+      "Drink Super combat potion",
+      "Equip Masori chaps (f)",
     ]);
   });
 

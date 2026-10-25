@@ -15,7 +15,7 @@ import {
   VenatorRing,
 } from "osrs-sdk";
 import type { Item, Player, UnitEquipment } from "osrs-sdk";
-import type { GearKeys, GearSlot, Setup, SupplyKey } from "./OcellusTimings";
+import type { GearKeys, GearSlot, InventoryLayout, Setup, SupplyKey } from "./OcellusTimings";
 import { GEAR_SLOTS, OCELLUS_P4 } from "./OcellusTimings";
 import type { LoadoutSnapshot } from "./P4Types";
 import {
@@ -77,17 +77,54 @@ function wear<S extends GearSlot>(equipment: UnitEquipment, slot: S, setup: Setu
 
 const STANCES: Readonly<Record<typeof OCELLUS_P4.gear.scytheStance.value, AttackStyle>> = { jab: AttackStyle.AGGRESSIVECRUSH };
 
-export function dress(player: Player, worn: Setup): void {
+type Bag = Readonly<{ special: Item; spares: ReadonlyMap<GearSlot, Item>; supplies: readonly Item[] }>;
+
+function place(inventory: (Item | null)[], layout: InventoryLayout, bag: Bag): void {
+  const claim = (slot: number, item: Item, claimed: Set<number>) => {
+    if (!Number.isInteger(slot) || slot < 1 || slot > inventory.length) throw new Error(`inventory slot ${slot} is outside the ${inventory.length} slots`);
+    if (claimed.has(slot)) throw new Error(`inventory slot ${slot} is claimed twice`);
+    claimed.add(slot);
+    inventory[slot - 1] = item;
+  };
+  const claimed = new Set<number>();
+  if (layout.kind === "in-order") {
+    let next = 1;
+    claim(next++, bag.special, claimed);
+    for (const slot of OCELLUS_P4.gear.switches.value) {
+      const spare = bag.spares.get(slot);
+      if (spare !== undefined) claim(next++, spare, claimed);
+    }
+    for (const supply of bag.supplies) claim(next++, supply, claimed);
+    return;
+  }
+  claim(layout.specialWeapon, bag.special, claimed);
+  for (const slot of OCELLUS_P4.gear.switches.value) {
+    const spare = bag.spares.get(slot);
+    const at = layout.switches[slot];
+    if (spare !== undefined && at !== undefined) claim(at, spare, claimed);
+  }
+  if (layout.supplies.length !== bag.supplies.length) throw new Error(`the layout has ${layout.supplies.length} supply slots for ${bag.supplies.length} supplies`);
+  layout.supplies.forEach((at, index) => {
+    const supply = bag.supplies[index];
+    if (supply !== undefined) claim(at, supply, claimed);
+  });
+}
+
+export function dress(player: Player, worn: Setup, layout: InventoryLayout): void {
   for (const slot of GEAR_SLOTS) wear(player.equipment, slot, worn);
 
-  const switches: Item[] = [create("weapon", OCELLUS_P4.gear.specialWeapon.value)];
+  const spares = new Map<GearSlot, Item>();
   for (const option of Object.values(OCELLUS_P4.choices.setup.options)) {
-    for (const slot of GEAR_SLOTS) {
-      if (option.value[slot] !== worn[slot]) switches.push(create(slot, option.value[slot]));
+    for (const slot of OCELLUS_P4.gear.switches.value) {
+      if (option.value[slot] !== worn[slot]) spares.set(slot, create(slot, option.value[slot]));
     }
   }
-  const supplies = OCELLUS_P4.gear.supplies.value.map((key) => SUPPLIES[key]());
-  [...switches, ...supplies].forEach((item, index) => (player.inventory[index] = item));
+  const bag: Bag = {
+    special: create("weapon", OCELLUS_P4.gear.specialWeapon.value),
+    spares,
+    supplies: OCELLUS_P4.gear.supplies.value.map((key) => SUPPLIES[key]()),
+  };
+  place(player.inventory, layout, bag);
   player.equipmentChanged();
   AttackStylesController.controller.setWeaponAttackStyle(new OcellusScythe(), STANCES[OCELLUS_P4.gear.scytheStance.value]);
 }

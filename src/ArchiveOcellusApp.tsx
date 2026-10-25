@@ -105,7 +105,12 @@ function readSettings() {
   // The SDK saves its own off defaults on a first load and turns sound off on every mobile load, so the player's choice is read before it loads.
   const saved = savedSoundChoice();
   Settings.readFromStorage();
-  Settings.set({ playsAudio: saved.playsAudio ?? SOUNDS_START_ON, playsAreaAudio: saved.playsAreaAudio ?? SOUNDS_START_ON });
+  Settings.set({
+    playsAudio: saved.playsAudio ?? SOUNDS_START_ON,
+    playsAreaAudio: saved.playsAreaAudio ?? SOUNDS_START_ON,
+    // The SDK's bar is centred and 300 px wide; the trainer draws a smaller one under the FPS panel instead.
+    displayBossHealthBar: false,
+  });
 }
 
 function createTrainer() {
@@ -122,14 +127,17 @@ function createTrainer() {
 }
 
 const SETUP_KEYS = Object.keys(OCELLUS_P4.choices.setup.options);
+const INVENTORY_KEYS = Object.keys(OCELLUS_P4.choices.inventoryLayout.options);
 const FOCUS_KEYS = Object.keys(OCELLUS_P4.choices.focus.options);
 const label = (key: string) => key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, " ");
 
-type RunRequest = Readonly<{ setup: string; focus: string; seed: string | null; invincible: boolean }>;
+type RunRequest = Readonly<{ setup: string; inventory: string; focus: string; seed: string | null; invincible: boolean }>;
 
-function startRun({ setup, focus, seed, invincible }: RunRequest) {
+function startRun({ setup, inventory, focus, seed, invincible }: RunRequest) {
   const url = new URL(window.location.href);
   url.searchParams.set("setup", setup);
+  if (inventory === OCELLUS_P4.choices.inventoryLayout.default) url.searchParams.delete("inventoryLayout");
+  else url.searchParams.set("inventoryLayout", inventory);
   url.searchParams.set("focus", focus);
   if (seed !== null) url.searchParams.set("seed", seed);
   else url.searchParams.delete("seed");
@@ -169,7 +177,7 @@ function DrillControls({ config, region }: Readonly<{ config: DrillConfig; regio
   const settingsButton = useRef<HTMLButtonElement>(null);
   const whatsNewTitle = useRef<HTMLHeadingElement>(null);
   const { playsAudio, playsAreaAudio } = useSettingsSnapshot();
-  const restart = (focus: string) => startRun({ setup, focus, seed: typedSeed?.trim() || null, invincible: region.invincible });
+  const restart = (focus: string, inventory: string = config.choices.inventoryLayout.key) => startRun({ setup, inventory, focus, seed: typedSeed?.trim() || null, invincible: region.invincible });
 
   const openWhatsNew = () => {
     rememberSeenRelease(LATEST_RELEASE.version);
@@ -211,6 +219,12 @@ function DrillControls({ config, region }: Readonly<{ config: DrillConfig; regio
           Setup{" "}
           <select id="setup" value={setup} onChange={(event) => setSetup(event.target.value)}>
             {SETUP_KEYS.map((key) => <option key={key} value={key}>{label(key)}</option>)}
+          </select>
+        </label>
+        <label>
+          Inventory{" "}
+          <select id="inventory" value={config.choices.inventoryLayout.key} onChange={(event) => restart(config.choices.focus.key, event.target.value)}>
+            {INVENTORY_KEYS.map((key) => <option key={key} value={key}>{label(key)}</option>)}
           </select>
         </label>
         <label>
@@ -306,7 +320,7 @@ function RunResultPanel({ config, region }: Readonly<{ config: DrillConfig; regi
   }, [region, result]);
 
   if (!result) return null;
-  const again = (seed: string | null) => startRun({ setup: config.choices.setup.key, focus: config.choices.focus.key, seed, invincible: region.invincible });
+  const again = (seed: string | null) => startRun({ setup: config.choices.setup.key, inventory: config.choices.inventoryLayout.key, focus: config.choices.focus.key, seed, invincible: region.invincible });
   return (
     <section id="run_result" role="dialog" aria-labelledby="run_result_title">
       <RunResultText result={result} />
@@ -336,6 +350,49 @@ function GameChat({ region }: Readonly<{ region: OcellusRegion }>) {
   );
 }
 
+const BOSS_HITPOINTS_POLL_MS = 100;
+
+type BossHitpoints = Readonly<{ hp: number; maxHp: number }>;
+
+function bossHitpoints(region: OcellusRegion): BossHitpoints | null {
+  const boss = region.snapshot()?.boss;
+  return boss ? { hp: boss.hp, maxHp: boss.maxHp } : null;
+}
+
+function sameHitpoints(shown: BossHitpoints | null, latest: BossHitpoints | null): boolean {
+  return shown === latest || (shown !== null && latest !== null && shown.hp === latest.hp && shown.maxHp === latest.maxHp);
+}
+
+/** A compact version of the SDK's boss bar, placed under the FPS panel. */
+function BossHealthBar({ region }: Readonly<{ region: OcellusRegion }>) {
+  const [shown, setShown] = useState<BossHitpoints | null>(null);
+  useEffect(() => {
+    const poll = () => setShown((current) => {
+      const latest = bossHitpoints(region);
+      return sameHitpoints(current, latest) ? current : latest;
+    });
+    poll();
+    const timer = window.setInterval(poll, BOSS_HITPOINTS_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [region]);
+
+  if (!shown) return null;
+  const maximum = Math.max(1, shown.maxHp);
+  const hitpoints = Math.min(Math.max(0, shown.hp), maximum);
+  const percent = ((hitpoints / maximum) * 100).toFixed(1);
+  return (
+    <div id="boss_health" role="group" aria-label="Ocellus health">
+      <div id="boss_health_label">
+        <span id="boss_health_name">Ocellus</span>
+        <span id="boss_health_value">{hitpoints} / {maximum} ({percent}%)</span>
+      </div>
+      <span id="boss_health_track">
+        <span id="boss_health_fill" style={{ width: `${percent}%` }} />
+      </span>
+    </div>
+  );
+}
+
 export function ArchiveOcellusApp() {
   const [{ trainer, region, config }] = useState(createTrainer);
   const [loading, setLoading] = useState<TrainerLoadingState>();
@@ -344,6 +401,7 @@ export function ArchiveOcellusApp() {
     <TrainerApp trainer={trainer} onLoadingStateChange={setLoading}>
       <GameOverlay>
         <TrainerLoadingSplash state={loading} />
+        <BossHealthBar region={region} />
         <GameChat region={region} />
         <DrillControls config={config} region={region} />
         <RunResultPanel config={config} region={region} />

@@ -36,14 +36,15 @@ BOSS_POSE_SOUND_SAMPLES='{"rise":39690,"hover":44100}'
 LOADOUT_QUERY="?seed=6&setup=ranged"
 LOADOUT_RANGED_WORN='{"weapon":20997,"offhand":null,"helmet":27235,"chest":27238,"legs":27241,"gloves":26235,"cape":28951,"necklace":33639,"feet":31097,"ring":28310,"ammo":11212}'
 LOADOUT_MELEE_WORN='{"weapon":22325,"offhand":null,"helmet":24419,"chest":24420,"legs":24421,"gloves":22981,"cape":21295,"necklace":29801,"feet":31097,"ring":25485,"ammo":11212}'
+LOADOUT_MELEE_SWITCHED='{"weapon":22325,"offhand":null,"helmet":24419,"chest":24420,"legs":24421,"gloves":22981,"cape":21295,"necklace":29801,"feet":31097,"ring":28310,"ammo":11212}'
 LOADOUT_INVENTORY_TAB_X=1164
 LOADOUT_INVENTORY_TAB_Y=745
 LOADOUT_SLOT_X=1125
 LOADOUT_SLOT_Y=508
 LOADOUT_SLOT_DX=39
 LOADOUT_SLOT_DY=32
-LOADOUT_SPECIAL_SLOT=0
-LOADOUT_SWITCHES=8
+LOADOUT_SPECIAL_SLOT=3
+LOADOUT_SWITCH_SLOTS='0 1 4 5 8 9 12'
 LOADOUT_SPECIAL_ORB_X=1140
 LOADOUT_SPECIAL_ORB_Y=157
 RISEN_BOSS_CLICK_RIGHT_PX=-10
@@ -55,10 +56,10 @@ LOADOUT_TRAINER_ICONS='{"24419":"27x30","24420":"32x24","24421":"16x31","26235":
 DEFENCE_FLOOR_QUERY="?seed=20&setup=ranged"
 DEFENCE_FLOOR_STEPS="[250,176,150]"
 SUPPLY_QUERY="?seed=1&setup=ranged"
-SUPPLY_INVENTORY='[28922,22325,24419,24420,24421,22981,21295,29801,25485,12695,22461,6685,3024,12695,22461,6685,3024,6685,6685,6685,3024,6685,6685,6685,3024,6685,6685,3024]'
-SUPPLY_NAMED_SLOT=0
+SUPPLY_INVENTORY='[22325,22981,12695,28922,24419,21295,22461,6685,24420,29801,3024,12695,24421,22461,6685,3024,6685,6685,6685,3024,6685,6685,6685,3024,6685,6685,3024,3024]'
+SUPPLY_NAMED_SLOT=3
 SUPPLY_NAMED_MENU='["Equip Tonalztics of Ralos","Drop Tonalztics of Ralos","Examine Tonalztics of Ralos"]'
-SUPPLY_BREW_SLOT=11
+SUPPLY_BREW_SLOT=14
 SUPPLY_HP_AFTER_BREW=115
 SUPPLY_HOVER_NAME_PIXEL="#ff911f"
 KEYBIND_INVENTORY_BUTTON_X=1130
@@ -772,7 +773,7 @@ drive_loadouts() {
   click_at "$LOADOUT_INVENTORY_TAB_X" "$LOADOUT_INVENTORY_TAB_Y" || return 1
   ab wait 600 >/dev/null
 
-  for slot in $(seq $((LOADOUT_SPECIAL_SLOT + 1)) "$LOADOUT_SWITCHES"); do
+  for slot in $LOADOUT_SWITCH_SLOTS; do
     click_inventory_slot "$slot" || return 1
     ab wait 150 >/dev/null
   done
@@ -2027,7 +2028,7 @@ drive() {
   done
 
   node -e '
-    const [dir, spawn, target, edgeOrder, edgeStop, holdTicks, bossNpc, lastHiddenTick, lastTick, stages, overheads, specials, focusKey, focusExpected, square, floodDamage, floodLast, voidHits, voidEnd, voidPixel, rangedWorn, meleeWorn, drain, orbExpected, orbBox, orbFrames,
+    const [dir, spawn, target, edgeOrder, edgeStop, holdTicks, bossNpc, lastHiddenTick, lastTick, stages, overheads, specials, focusKey, focusExpected, square, floodDamage, floodLast, voidHits, voidEnd, voidPixel, rangedWorn, meleeWorn, switchedWorn, drain, orbExpected, orbBox, orbFrames,
       innerMarks, lateMark, explosionPixel, explosionExpected, soundSamples, explosionSounds, centreX, centreY, tellBox, specialExpected,
       tellCentreBox, transitionSamples, landingSounds, landingWindows, styleSounds, styleWindows, soundTolerance,
       supplyInventory, namedMenu, hpAfterBrew, defaultKey, newKey, trainerIcons, brewY, hoverNamePixel, overheadShots, iconBox, riftExpected, burstTick, soulSplitExpected, killChat,
@@ -2526,7 +2527,7 @@ drive() {
       innerVoidDrawn: share["void-inner.png"] > 0.6 && share["void-inner.png"] < 3,
       floodDrawn: share["void-flood.png"] > 3 && share["flood-ring.png"] > 3,
       rangedSetupWorn: sameJson(dressed.player.equipped, rangedWorn),
-      switchesWornByClick: sameJson(switched.player.equipped, meleeWorn),
+      switchesWornByClick: sameJson(switched.player.equipped, switchedWorn),
       divisionSpentHalfTheBar: switched.player.specialEnergy === 100 && spec.player.specialEnergy === 50,
       divisionDrainedBossDefence: (() => {
         const kept = (e) => (e.outcome === "passed" ? e.requested : e.outcome === "reduced" ? Math.floor((e.requested * (100 - Number(explosionReduction))) / 100) : 0);
@@ -2673,7 +2674,7 @@ drive() {
     process.exit(Object.values(checks).every(Boolean) ? 0 : 1);
   ' "$VERIFY_DIR" "$SPAWN_TILE" "$WALK_TARGET_TILE" "$EDGE_ORDER_TILE" "$EDGE_STOP_TILE" "$EDGE_HOLD_TICKS" "$BOSS_NPC" "$CYCLE_LAST_HIDDEN_TICK" "$CYCLE_LAST_TICK" "$CYCLE_STAGE_ENTRIES" "$CYCLE_OVERHEAD_SWITCHES" "$CYCLE_SPECIAL_HITS" "$FOCUS_DRILL" "$FOCUS_EXPECTED" \
     "$NEAR_SQUARE" "$FLOOD_DAMAGE_TICK" "$FLOOD_LAST_TICK" "$VOID_FLOOR_HITS" "$VOID_RUN_END" "$VOID_PIXEL" \
-    "$LOADOUT_RANGED_WORN" "$LOADOUT_MELEE_WORN" "$LOADOUT_DIVISION_DRAIN" "$ORB_EXPECTED" "$ORB_BOX" "$ORB_FRAMES" \
+    "$LOADOUT_RANGED_WORN" "$LOADOUT_MELEE_WORN" "$LOADOUT_MELEE_SWITCHED" "$LOADOUT_DIVISION_DRAIN" "$ORB_EXPECTED" "$ORB_BOX" "$ORB_FRAMES" \
     "[${EXPLOSION_INNER_MARKS// /,}]" "${EXPLOSION_OUTER_MARKS%% *}" "$EXPLOSION_PIXEL" "$EXPLOSION_EXPECTED" "$SOUND_SAMPLES" "$EXPLOSION_SOUNDS" "$CX" "$CY" "$TELL_BOX" "$SPECIAL_EXPECTED" \
     "$TELL_CENTRE_BOX" "$TRANSITION_SOUND_SAMPLES" "$LANDING_SOUNDS" "$LANDING_WINDOWS" "$STYLE_SOUNDS" "$STYLE_WINDOWS" "$SOUND_TOLERANCE_TICKS" \
     "$SUPPLY_INVENTORY" "$SUPPLY_NAMED_MENU" "$SUPPLY_HP_AFTER_BREW" "$KEYBIND_DEFAULT_KEY" "$KEYBIND_NEW_KEY" \

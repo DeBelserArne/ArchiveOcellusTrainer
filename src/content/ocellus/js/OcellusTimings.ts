@@ -16,7 +16,7 @@ const VODS = {
 } as const;
 type Vod = keyof typeof VODS;
 
-type OwnerDate = "2026-10-21" | "2026-10-22" | "2026-10-23" | "2026-10-24";
+type OwnerDate = "2026-10-21" | "2026-10-22" | "2026-10-23" | "2026-10-24" | "2026-10-25";
 
 type Source =
   | Readonly<{ kind: "vod"; vod: Vod; at: string }>
@@ -237,6 +237,11 @@ export type GearKeys = Readonly<{
 }>;
 export type Setup = Readonly<{ [S in GearSlot]: GearKeys[S] }>;
 export type SupplyKey = "superCombatPotion" | "bastionPotion" | "saradominBrew" | "superRestore";
+
+/** Where each carried item sits in the 28-slot bag, numbered from 1 as the inventory reads. */
+export type InventoryLayout =
+  | Readonly<{ kind: "in-order" }>
+  | Readonly<{ kind: "slots"; specialWeapon: number; switches: Readonly<Partial<Record<GearSlot, number>>>; supplies: readonly number[] }>;
 export type TrainerItemKey = "inquisitorsGreatHelm" | "inquisitorsHauberk" | "inquisitorsPlateskirt" | "tonalzticsOfRalos";
 type SdkIconKey = "masoriMaskF" | "masoriBodyF" | "masoriChapsF" | "zaryteVambraces";
 type InquisitorPiece = "inquisitorsGreatHelm" | "inquisitorsHauberk" | "inquisitorsPlateskirt";
@@ -247,6 +252,7 @@ type GearRecipe = Readonly<{
   sdkCacheIds: Readonly<{ necklaceOfRupture: Selected<number> }>;
   sdkIcons: Readonly<Record<SdkIconKey, Selected<number>>>;
   supplies: Selected<readonly SupplyKey[]>;
+  switches: Selected<readonly GearSlot[]>;
   twistedBow: Selected<StanceSpeeds<TwistedBow["attackSpeed"]>>;
   ralos: Selected<StanceSpeeds & Readonly<{ range: number; longrangeRange: number; hits: number; hitMaxFraction: number }>>;
   division: Selected<Readonly<{ energy: number; accuracyFactor: number; defenceDrainOfMagic: number }>>;
@@ -782,10 +788,15 @@ const GEAR: GearRecipe = {
       "superCombatPotion", "bastionPotion", "saradominBrew", "superRestore",
       "saradominBrew", "saradominBrew", "saradominBrew", "superRestore",
       "saradominBrew", "saradominBrew", "saradominBrew", "superRestore",
-      "saradominBrew", "saradominBrew", "superRestore",
+      "saradominBrew", "saradominBrew", "superRestore", "superRestore",
     ],
-    "spec-single", "unscaled", "slots 9 to 27 of the wiki's recommended raid inventory, in its order: 2 super combat potions, 2 ranging potions, 10 Saradomin brews and 5 super restores, with no fish; the SDK has no ranging potion, so the Bastion potion stands in, with the same Ranged boost plus a Defence boost (inferred)",
+    "spec-single", "unscaled", "slots 9 to 27 of the wiki's recommended raid inventory, in its order: 2 super combat potions, 2 ranging potions, 10 Saradomin brews and 5 super restores, with no fish; the SDK has no ranging potion, so the Bastion potion stands in, with the same Ranged boost plus a Defence boost (inferred); a sixth super restore takes the bag slot the ring switch left behind",
     RAID_INVENTORY, wiki(`${OSRS_WIKI}Ranging_potion`, 15293943), wiki(`${OSRS_WIKI}Bastion_potion`, 15293966),
+  ),
+  switches: selected<readonly GearSlot[]>(
+    ["weapon", "helmet", "chest", "legs", "gloves", "cape", "necklace"],
+    "assumption", "unscaled", "no ring switch: the ring stays as worn, and its bag slot carries the sixth super restore instead; every other slot the two setups differ in carries a spare",
+    NO_WIKI_PRACTICE, owner("inventory layout", "2026-10-25"),
   ),
   twistedBow: selected({ rapidSpeed: 5, otherSpeed: 6 }, "spec-single", "unscaled", "attack speed by stance: 5 ticks on Rapid, 6 on Accurate and Longrange", TWISTED_BOW_PAGE),
   ralos: selected({ rapidSpeed: span(6), otherSpeed: span(7), range: 7, longrangeRange: 9, hits: 2, hitMaxFraction: 0.75 }, "spec-single", "unscaled", "charged, one-handed thrown: two independent hits, each 0 to 75% of the max ranged hit", RALOS_PAGE),
@@ -830,6 +841,23 @@ export const OCELLUS_P4 = {
         { weapon: "scytheOfVitur", helmet: "inquisitorsGreatHelm", chest: "inquisitorsHauberk", legs: "inquisitorsPlateskirt", gloves: "ferociousGloves", cape: "infernalCape", necklace: "amuletOfRancour", feet: "avernicTreadsMax", ring: "ultorRing", ammo: "dragonArrows" },
         "assumption", "unscaled", "owner-named Inquisitor's armour with the Scythe of Vitur on crush, the Amulet of rancour (the owner's first choice over blood fury; both are in cache 2746) and Avernic treads (max) in both setups; gloves, cape and ring are SDK items (assumption)",
         RANCOUR_PAGE, TREADS_PAGE, owner("melee setup"), owner("melee amulet"), owner("boots"),
+      ),
+    }),
+    inventoryLayout: choice("stacked", {
+      stacked: selected<InventoryLayout>(
+        {
+          kind: "slots",
+          specialWeapon: 4,
+          switches: { weapon: 1, gloves: 2, helmet: 5, cape: 6, chest: 9, necklace: 10, legs: 13 },
+          supplies: [3, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28],
+        },
+        "assumption", "unscaled", "the owner's bag: the switch weapon top left, the other setup's armour down the first column, its gloves, cape and necklace down the second, Ralos in the top right corner, and the potions in the wiki's order through the slots that are left, reading left to right and top to bottom",
+        NO_WIKI_PRACTICE, owner("inventory layout", "2026-10-25"),
+      ),
+      "wiki-order": selected<InventoryLayout>(
+        { kind: "in-order" },
+        "assumption", "unscaled", "the trainer's original fill order: the special weapon first, then the other setup's spares in gear order, then the potions, so adding a potion shifts every item below it",
+        NO_WIKI_PRACTICE, owner("inventory layout", "2026-10-25"),
       ),
     }),
     bossMaxHp: choice("cache", {
@@ -960,6 +988,7 @@ function resolveChoices(lookup: (name: ChoiceName) => string | undefined, reject
   };
   return {
     setup: pick("setup"),
+    inventoryLayout: pick("inventoryLayout"),
     bossMaxHp: pick("bossMaxHp"),
     entryHpFraction: pick("entryHpFraction"),
     explosions: pick("explosions"),

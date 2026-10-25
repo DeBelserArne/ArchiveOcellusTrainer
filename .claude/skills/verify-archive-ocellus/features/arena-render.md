@@ -9,6 +9,7 @@ Opening the trainer loads cache assets, counts down GET READY, and shows the mea
 - `arena-walkway` draws the brazier walkway (`w`, `b` and `/` in the same rows) as a raised olive curb with a light face toward the floor. A `/` tile is a diagonal wall: the curb fills its outer half and faces the floor along the diagonal, so the wall runs straight from the end of the straight run to the jut, and its floor half floods with the floor beside it. and hangs the cache's Zarosian Censer (model 62440) over the `b` tile. The walkway is scenery: a click on it walks the player to the nearest floor tile.
 - `arena-player` draws the player model, in the selected setup's gear (ranged by default), on spawn tile (5, 1).
 - `arena-hud` shows the minimap orbs, inventory tabs and inventory panel.
+- `arena-boss-health` shows Ocellus's name, hitpoints and a green health bar in a 176 px box at the top left, directly under the 80x48 FPS panel. The SDK's own centred bar is switched off with `displayBossHealthBar: false`, so no bar is drawn across the top centre. `BossHealth.test.tsx` pins the numbers and the setting.
 
 ## How to get to it (user POV)
 
