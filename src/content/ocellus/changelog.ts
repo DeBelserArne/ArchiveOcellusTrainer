@@ -2,6 +2,13 @@ import type { Changelog } from "../../releases";
 
 export const CHANGELOG: Changelog = [
   {
+    version: "2026.10.25.3",
+    notes: [
+      "The fight waits for you. Set your keybinds and settings first, then press Start to begin the GET READY countdown.",
+      "Pause with the Pause button or P. While paused you can change keybinds and settings, and the fight resumes on the same tick. The result shows how long you paused.",
+    ],
+  },
+  {
     version: "2026.10.25.2",
     notes: [
       "Change your mind before the tick, like in game. Whatever you click last before the tick is what you do.",
