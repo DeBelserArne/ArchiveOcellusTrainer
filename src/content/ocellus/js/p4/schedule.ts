@@ -41,6 +41,7 @@ function mechanicOf(beat: Beat): Mechanic | null {
     case "unclaimed-orb-heals":
       return "lifeforce-orb";
     case "explosion-series-starts":
+    case "explosion-tell":
     case "explosion-mark":
     case "explosion-impact":
     case "explosions-occurring":
@@ -104,6 +105,7 @@ export function compileSchedule(seed: Seed, choices: ResolvedChoices): P4Schedul
       put(hit + unclaimed.afterHit, "unclaimed outer orb heal", () => ({ kind: "unclaimed-orb-heals" }));
     }
     put(hit + explosionCues.seriesStartsAfterHit.value, `${kind} explosion series start`, () => ({ kind: "explosion-series-starts", void: kind }));
+    put(hit + explosionCues.tellAfterHit.value, `${kind} explosion tell`, () => ({ kind: "explosion-tell", void: kind }));
     const firstMark = hit + explosions.firstMarkAfterHit;
     for (let pulse = 0; pulse < explosions.count; pulse++) {
       const mark = firstMark + pulse * explosions.period;

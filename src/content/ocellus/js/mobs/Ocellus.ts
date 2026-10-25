@@ -303,6 +303,7 @@ export class Ocellus extends Mob {
       case "unclaimed-orb-heals":
         return logs(...this.stepOrbs(releaseUnclaimedOuterOrb(this.orbs)).map(({ amount }) => this.healBoss({ kind: "unclaimed-orb" }, amount, at)));
       case "explosion-series-starts":
+      case "explosion-tell":
       case "explosion-mark":
       case "explosion-impact":
       case "explosions-occurring":

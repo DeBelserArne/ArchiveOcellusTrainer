@@ -1,5 +1,8 @@
+import { Settings } from "osrs-sdk";
 import type { At } from "./drill";
 import { FLOOD_NORTH_OF_RING, RING_NORTH, SPAWN_ON_FLOOD, UNDER_BOSS, startDrill } from "./drill";
+import { paintedFills } from "../../../../test/paintedTiles";
+import { OCELLUS_P4 } from "../js/OcellusTimings";
 
 const EXPLOSIONS = { focus: "explosions" } as const;
 const BESIDE_SPAWN: At = { x: 6, y: 1 };
@@ -54,6 +57,67 @@ describe("U4 personal explosions", () => {
     expect(drill.events("explosion-resolved").map((e) => [e.at, e.outcome.kind, e.tile])).toEqual([[18, "hit", { x: 5, y: 1 }]]);
     expect(drill.row(18).playerAtPostTick.tile).toEqual({ x: 6, y: 1 });
     drill.dispose();
+  });
+
+  test("the series tells the player first, at hit + 3, on the player's tile, one tick before the mark that opens the rhythm", () => {
+    const drill = startDrill({ selection: EXPLOSIONS });
+    drill.tickTo(47);
+    expect(drill.events("explosion-told").map((e) => [e.at, e.void, e.tile])).toEqual([
+      [15, "inner-void", { x: 5, y: 1 }],
+      [46, "outer-void", { x: 5, y: 1 }],
+    ]);
+    drill.dispose();
+  });
+
+  test("in 2D, the tell raises spikes where the player stands on its tick, then spins the balls around wherever the player is on the tick after", () => {
+    const drill = startDrill({ selection: EXPLOSIONS });
+    const tell = OCELLUS_P4.explosion.tell.value;
+    const fillsAt = (tickPercent: number) => paintedFills((context) => drill.region.entities.forEach((entity) => entity.draw(tickPercent, context)));
+    const spikes = (tickPercent: number) => fillsAt(tickPercent).filter((fill) => fill.style === tell.spike);
+    const balls = (tickPercent: number) => fillsAt(tickPercent).filter((fill) => fill.style === tell.ball);
+    const centreOf = (fills: ReturnType<typeof balls>) => {
+      const scale = Settings.tileSize;
+      const mean = (pick: (fill: (typeof fills)[number]) => number) => fills.reduce((sum, fill) => sum + pick(fill), 0) / fills.length / scale;
+      return { x: mean((fill) => fill.x + fill.width / 2), y: mean((fill) => fill.y + fill.height / 2) };
+    };
+
+    drill.tickTo(14);
+    drill.walkTo(BESIDE_SPAWN);
+    drill.tickTo(15);
+    const told = spikes(0.5);
+    const spikesAt = centreOf(told);
+    const playerAtFifteen = drill.perceivedPlayer();
+    drill.tickTo(16);
+    const spun = balls(0.25);
+    const spunLater = balls(0.75);
+    const ballsAt = centreOf(balls(0.5));
+    const playerAtSixteen = drill.perceivedPlayer();
+    drill.tickTo(17);
+    const cleared = [...spikes(0.5), ...balls(0.5)].length;
+    drill.dispose();
+
+    const [px, py] = [playerAtSixteen.x + 0.5, playerAtSixteen.y + 0.5];
+    expect({
+      spikeCount: told.length,
+      spikesRise: told.every((fill) => fill.width > 0 && fill.height > 0),
+      spikesRingThePlayer: Math.abs(spikesAt.x - (playerAtFifteen.x + 0.5)) < 0.02,
+      ballCount: spun.length,
+      ballsRingThePlayer: Math.abs(ballsAt.x - px) < 0.02,
+      ballsAtHeadHeight: Math.abs(ballsAt.y - (py - tell.ballHeight)) < 0.02,
+      ballsAboveTheFloor: ballsAt.y < py - 0.5,
+      spunMoves: spun.some((fill, index) => fill.x !== spunLater[index].x || fill.y !== spunLater[index].y),
+      cleared,
+    }).toEqual({
+      spikeCount: tell.spikes,
+      spikesRise: true,
+      spikesRingThePlayer: true,
+      ballCount: tell.balls,
+      ballsRingThePlayer: true,
+      ballsAtHeadHeight: true,
+      ballsAboveTheFloor: true,
+      spunMoves: true,
+      cleared: 0,
+    });
   });
 
   test("in 2D, the mark's shards close in on the player's tile through the first half of the mark tick, then give way to the glow", () => {

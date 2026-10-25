@@ -2,6 +2,13 @@ import type { Changelog } from "../../releases";
 
 export const CHANGELOG: Changelog = [
   {
+    version: "2026.10.25.4",
+    notes: [
+      "The void explosions now tell you they are starting, the way they do in game: spikes rise around you on one tick, then turn into spinning balls on the next, one tick before the first explosion.",
+      "Use it as the cue to start stepping every 2 ticks, so each explosion is dodged and your attacks keep landing.",
+    ],
+  },
+  {
     version: "2026.10.25.2",
     notes: [
       "Change your mind before the tick, like in game. Whatever you click last before the tick is what you do.",

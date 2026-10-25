@@ -68,6 +68,9 @@ function present(event: FightEvent, views: Views, player: Tile): void {
     case "explosion-series-started":
       playCue(sounds.explosionSeriesStart.value, player);
       return;
+    case "explosion-told":
+      views.explosions.tell(event.tile);
+      return;
     case "explosion-marked":
       views.explosions.mark(event.void, event.pulse, event.tile);
       playCue(sounds.explosionMark.value, player);
@@ -192,7 +195,7 @@ export class OcellusRegion extends Region {
       holes: ocellus.holes.tiles().map((at) => new FloorHole(this, at)),
       orbs: { "inner-void": new OrbView(this), "outer-void": new OrbView(this) },
       fragment: new FragmentFlash(this),
-      explosions: new ExplosionViews(this),
+      explosions: new ExplosionViews(this, (tickPercent) => player.getPerceivedLocation(tickPercent)),
       boss: new BossLook(ocellus),
       player: new PlayerLook(player),
       chat: [],

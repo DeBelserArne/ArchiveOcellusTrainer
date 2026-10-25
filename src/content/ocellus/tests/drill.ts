@@ -150,6 +150,11 @@ export function startDrill(options: DrillOptions = {}) {
         .filter((fill) => fill.style === shard)
         .map((fill) => Math.hypot((fill.x + fill.width / 2) / scale - (around.x + 0.5), (fill.y + fill.height / 2) / scale - (around.y + 0.5)));
     },
+    /** Where the player is drawn, which the SDK advances per frame rather than per tick. */
+    perceivedPlayer(): At {
+      const at = player().perceivedLocation;
+      return { x: at.x, y: at.y };
+    },
     walkTo,
     click: (on: At, modifiers: Readonly<{ ctrlKey?: boolean }> = {}) => clickTile(region.world, on, modifiers),
     clickRightBeforeTick(on: At) {

@@ -166,6 +166,84 @@ class BurstModel implements Model {
 
 let markSprite: OffscreenCanvas | null = null;
 
+/** The series tell lives on the tell tick and the tick after it: the spikes rise first, then the balls spin. */
+const TELL_TICKS = 2;
+const TELL = OCELLUS_P4.explosion.tell.value;
+const TELL_SPIKE_HALF_WIDTH = 0.1;
+const TELL_RISE_FROM = 0.45;
+
+type TellStage = "spikes" | "balls";
+
+function tellStage(age: number): TellStage {
+  return age === 0 ? "spikes" : "balls";
+}
+
+function ringPosition(index: number, count: number, radius: number, turn: number): readonly [x: number, y: number] {
+  const angle = (2 * Math.PI * index) / count + turn;
+  return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+}
+
+class TellModel implements Model {
+  private readonly group = new THREE.Group();
+  private readonly spikeMaterial = new THREE.MeshBasicMaterial({ color: TELL.spike, side: THREE.DoubleSide, transparent: true });
+  private readonly ballMaterial = new THREE.MeshBasicMaterial({ color: TELL.ball, transparent: true });
+  private readonly spikes: THREE.Mesh[] = [];
+  private readonly balls: THREE.Mesh[] = [];
+  private readonly spikePivots = new THREE.Group();
+  private readonly ballPivots = new THREE.Group();
+  private readonly owned: { dispose(): void }[] = [];
+
+  constructor(private readonly stage: () => TellStage) {
+    // A four-sided cone reads as a spike from any camera angle; a flat blade vanishes edge-on.
+    const spikeGeometry = new THREE.ConeGeometry(TELL_SPIKE_HALF_WIDTH, TELL.spikeHeight, 4);
+    for (let spike = 0; spike < TELL.spikes; spike++) {
+      const [x, y] = ringPosition(spike, TELL.spikes, TELL.spikeTiles, 0);
+      const mesh = new THREE.Mesh(spikeGeometry, this.spikeMaterial);
+      mesh.position.set(x, (TELL.spikeHeight * TELL_RISE_FROM) / 2, -y);
+      this.spikes.push(mesh);
+      this.spikePivots.add(mesh);
+    }
+    const ball = new THREE.SphereGeometry(TELL.ballTiles / 2, 8, 6);
+    for (let index = 0; index < TELL.balls; index++) {
+      const mesh = new THREE.Mesh(ball, this.ballMaterial);
+      this.balls.push(mesh);
+      this.ballPivots.add(mesh);
+    }
+    this.group.add(this.spikePivots, this.ballPivots);
+    this.owned.push(spikeGeometry, ball, this.spikeMaterial, this.ballMaterial);
+  }
+
+  draw(scene: THREE.Scene, clockDelta: number, tickPercent: number, location: Location3, angleRadians: number, pitchRadians: number, visible: boolean): void {
+    if (this.group.parent !== scene) scene.add(this.group);
+    const stage = this.stage();
+    this.group.visible = visible;
+    this.group.position.set(location.x + 0.5, GROUND_OVERLAY_Y, location.y - 0.5);
+    this.spikePivots.visible = stage === "spikes";
+    this.ballPivots.visible = stage === "balls";
+    const rise = TELL_RISE_FROM + (1 - TELL_RISE_FROM) * tickPercent;
+    for (const spike of this.spikes) {
+      spike.scale.y = rise;
+      spike.position.y = (TELL.spikeHeight * rise) / 2;
+    }
+    this.balls.forEach((mesh, index) => {
+      const [x, y] = ringPosition(index, TELL.balls, TELL.ballOrbit, 2 * Math.PI * TELL.ballTurns * tickPercent);
+      mesh.position.set(x, TELL.ballHeight, -y);
+    });
+  }
+
+  destroy(scene: THREE.Scene): void {
+    scene.remove(this.group);
+    this.owned.forEach((resource) => resource.dispose());
+  }
+
+  getWorldPosition(): THREE.Vector3 {
+    return this.group.getWorldPosition(new THREE.Vector3());
+  }
+
+  /** The tell draws plain three.js shapes, so it has no cache geometry to warm. */
+  async preload(): Promise<void> {}
+}
+
 class ExplosionView extends Entity {
   private blast: Blast = "marked";
 
@@ -214,15 +292,91 @@ class ExplosionView extends Entity {
   }
 }
 
+/** The one-off animation that opens an explosion series: spikes rise around the player, then balls spin, following wherever the player is. */
+class TellView extends Entity {
+  private age = 0;
+
+  constructor(region: Region, at: Tile, private readonly follow: (tickPercent: number) => Location3) {
+    super(region, { x: at.x, y: at.y });
+  }
+
+  /** The ring rides the player's drawn position, not the tile they happen to be standing on. */
+  override getPerceivedLocation(tickPercent: number): Location3 {
+    return this.follow(tickPercent);
+  }
+
+  override tick(): void {
+    this.age += 1;
+    if (this.age >= TELL_TICKS) this.dying = 0;
+    const player = this.follow(0);
+    this.location = { x: Math.round(player.x), y: Math.round(player.y) };
+  }
+
+  override get collisionType(): CollisionType {
+    return CollisionType.NONE;
+  }
+
+  override get lineOfSight(): LineOfSightMask {
+    return LineOfSightMask.NONE;
+  }
+
+  override draw(tickPercent: number, context: OffscreenCanvasRenderingContext2D): void {
+    const scale = Settings.tileSize;
+    const player = this.follow(tickPercent);
+    const [cx, cy] = [(player.x + 0.5) * scale, (player.y + 0.5) * scale];
+    const stage = tellStage(this.age);
+    context.save();
+    switch (stage) {
+      case "spikes": {
+        const rise = TELL_RISE_FROM + (1 - TELL_RISE_FROM) * tickPercent;
+        const width = 2 * TELL_SPIKE_HALF_WIDTH * scale;
+        const height = TELL.spikeHeight * scale * rise;
+        context.fillStyle = TELL.spike;
+        for (let spike = 0; spike < TELL.spikes; spike++) {
+          const [x, y] = ringPosition(spike, TELL.spikes, TELL.spikeTiles, 0);
+          context.fillRect(cx + x * scale - width / 2, cy + y * scale - height, width, height);
+        }
+        break;
+      }
+      case "balls": {
+        const size = TELL.ballTiles * scale;
+        context.fillStyle = TELL.ball;
+        for (let index = 0; index < TELL.balls; index++) {
+          const [x, y] = ringPosition(index, TELL.balls, TELL.ballOrbit, 2 * Math.PI * TELL.ballTurns * tickPercent);
+          context.fillRect(cx + x * scale - size / 2, cy + y * scale - size / 2 - TELL.ballHeight * scale, size, size);
+        }
+        break;
+      }
+      default: {
+        const unhandled: never = stage;
+        return unhandled;
+      }
+    }
+    context.restore();
+  }
+
+  protected override create3dModel(): Model {
+    return new TellModel(() => tellStage(this.age));
+  }
+}
+
 export class ExplosionViews {
   private readonly live = new Map<string, ExplosionView>();
+  private tells: TellView[] = [];
 
-  constructor(private readonly region: Region) {}
+  constructor(private readonly region: Region, private readonly playerAt: (tickPercent: number) => Location3) {}
 
   mark(kind: VoidKind, pulse: number, at: Tile): void {
     const view = new ExplosionView(this.region, at);
     this.region.addEntity(view);
     this.live.set(`${kind}:${pulse}`, view);
+  }
+
+  /** One tell per series, around the player: the cue to start the 2-tick dodge rhythm. It rides the player until it clears. */
+  tell(at: Tile): void {
+    const view = new TellView(this.region, at, this.playerAt);
+    this.region.addEntity(view);
+    this.tells = [...this.tells, view];
   }
 
   detonate(kind: VoidKind, pulse: number): void {
@@ -235,5 +389,9 @@ export class ExplosionViews {
       view.dying = 0;
     });
     this.live.clear();
+    this.tells.forEach((view) => {
+      view.dying = 0;
+    });
+    this.tells = [];
   }
 }

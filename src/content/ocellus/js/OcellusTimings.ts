@@ -621,9 +621,23 @@ const LIFEFORCE_ORB: LifeforceOrbRecipe = {
 
 type ExplosionSeriesRecipe = Readonly<{
   seriesStartsAfterHit: Selected<TickSpan>;
+  tellAfterHit: Selected<TickSpan>;
+  tell: Selected<ExplosionTellLook>;
   shards: Selected<string>;
   look: Selected<ExplosionLook>;
   dodge: Selected<Readonly<{ radius: number; attackDelayCut: TickSpan }>>;
+}>;
+export type ExplosionTellLook = Readonly<{
+  spike: string;
+  spikeTiles: number;
+  spikeHeight: number;
+  spikes: number;
+  ball: string;
+  ballTiles: number;
+  balls: number;
+  ballOrbit: number;
+  ballHeight: number;
+  ballTurns: number;
 }>;
 type Between = readonly [from: number, to: number];
 type ExplosionLook = Readonly<{
@@ -640,6 +654,26 @@ type ExplosionLook = Readonly<{
 
 const EXPLOSION: ExplosionSeriesRecipe = {
   seriesStartsAfterHit: selected(span(2), "footage-repeated", "team-4-and-5", "sound 12638 two ticks after the lifeforce hit, before the first mark of every option; what the server marks with it is inferred", NO_WIKI_TICKS, vod("V1", "3:54:04.77, t14"), vod("V2", "5:20:27.89, t14")),
+  tellAfterHit: selected(span(3), "footage-repeated", "team-4-and-5", "the tell at hit + 3, 7 ticks after the void forms, is the k55 mark that V2's series reads before its first explosion; the spike-up sits on the tell tick and the spin on the tick after, so the first explosion lands on the third tick", NO_WIKI_TICKS, vod("V2", "k55"), owner("explosion series tell", "2026-10-25")),
+  tell: selected(
+    {
+      spike: "#3f1b63",
+      spikeTiles: 0.45,
+      spikeHeight: 1.05,
+      spikes: 8,
+      ball: "#6a2f9c",
+      ballTiles: 0.12,
+      balls: 6,
+      ballOrbit: 0.32,
+      ballHeight: 0.95,
+      ballTurns: 2,
+    },
+    "assumption",
+    "unscaled",
+    "purple-black spikes rise in a ring around the player on the tell tick and turn into small dark purple balls that spin around the player's head on the tick after, before the first explosion mark; the colours and the ring, orbit, height and size values are chosen by eye from the owner's account, because no footage of the tell is measured",
+    NO_WIKI_PRESENTATION,
+    owner("explosion series tell", "2026-10-25"),
+  ),
   shards: selected(
     "#5e317b",
     "footage-repeated",

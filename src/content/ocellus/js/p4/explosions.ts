@@ -13,7 +13,7 @@ type Mark = Readonly<{ void: VoidKind; pulse: number; tile: Tile }>;
 type Impact = Extract<PlayerHit, { kind: "explosion-resolved" }>;
 
 export type Marks = readonly Mark[];
-export type ExplosionBeat = Extract<Beat, { kind: "explosion-series-starts" | "explosion-mark" | "explosion-impact" | "explosions-occurring" }>;
+export type ExplosionBeat = Extract<Beat, { kind: "explosion-series-starts" | "explosion-tell" | "explosion-mark" | "explosion-impact" | "explosions-occurring" }>;
 export type ExplosionStep = Readonly<{ marks: Marks; outputs: readonly (Logged<FightEvent> | HitRequest<PlayerHit> | AttackDelayCut)[] }>;
 export type ExplosionRules = Readonly<{ seed: Seed; choices: ResolvedChoices }>;
 export type Reduction = Readonly<{ outcome: "passed" }> | Readonly<{ outcome: "reduced"; percentLess: number }>;
@@ -41,6 +41,8 @@ export function explode(rules: ExplosionRules, marks: Marks, beat: ExplosionBeat
   switch (beat.kind) {
     case "explosion-series-starts":
       return { marks, outputs: [{ kind: "event", event: { kind: "explosion-series-started", at, void: beat.void } }] };
+    case "explosion-tell":
+      return { marks, outputs: [{ kind: "event", event: { kind: "explosion-told", at, void: beat.void, tile: player.tile } }] };
     case "explosion-mark":
       return {
         marks: [...marks, { void: beat.void, pulse: beat.pulse, tile: player.tile }],

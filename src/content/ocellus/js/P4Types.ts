@@ -39,6 +39,7 @@ export type Beat =
   | Readonly<{ kind: "orb-expires"; void: VoidKind }>
   | Readonly<{ kind: "unclaimed-orb-heals" }>
   | Readonly<{ kind: "explosion-series-starts"; void: VoidKind }>
+  | Readonly<{ kind: "explosion-tell"; void: VoidKind }>
   | Readonly<{ kind: "explosion-mark"; void: VoidKind; pulse: number }>
   | Readonly<{ kind: "explosion-impact"; void: VoidKind; pulse: number }>
   | Readonly<{ kind: "explosions-occurring"; void: VoidKind }>
@@ -94,6 +95,7 @@ export type FightEvent =
   | Readonly<{ kind: "orb-expired"; at: Tick; void: VoidKind; tile: Tile; credit: number }>
   | Readonly<{ kind: "boss-healed"; at: Tick; cause: HealCause; receipt: HealReceipt }>
   | Readonly<{ kind: "explosion-series-started"; at: Tick; void: VoidKind }>
+  | Readonly<{ kind: "explosion-told"; at: Tick; void: VoidKind; tile: Tile }>
   | Readonly<{ kind: "explosion-marked"; at: Tick; void: VoidKind; pulse: number; tile: Tile }>
   | Readonly<{ kind: "explosion-resolved"; at: Tick; void: VoidKind; pulse: number; tile: Tile; underBoss: boolean; outcome: ExplosionOutcome }>
   | (Readonly<{ kind: "special-told" }> & SpecialAttack)
