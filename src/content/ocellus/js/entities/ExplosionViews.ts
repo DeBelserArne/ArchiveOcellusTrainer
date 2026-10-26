@@ -171,6 +171,8 @@ const TELL_TICKS = 2;
 const TELL = OCELLUS_P4.explosion.tell.value;
 const TELL_SPIKE_HALF_WIDTH = 0.1;
 const TELL_RISE_FROM = 0.45;
+/** The group sits at GROUND_OVERLAY_Y, just under the floor, so a height above the floor is that much higher locally. */
+const TELL_BALL_Y = TELL.ballHeight - GROUND_OVERLAY_Y;
 
 type TellStage = "spikes" | "balls";
 
@@ -227,7 +229,7 @@ class TellModel implements Model {
     }
     this.balls.forEach((mesh, index) => {
       const [x, y] = ringPosition(index, TELL.balls, TELL.ballOrbit, 2 * Math.PI * TELL.ballTurns * tickPercent);
-      mesh.position.set(x, TELL.ballHeight, -y);
+      mesh.position.set(x, TELL_BALL_Y, -y);
     });
   }
 

@@ -43,14 +43,32 @@ export function loadWebAnalytics(): void {
   document.body.append(script);
 }
 
-async function sampleRate(): Promise<number | null> {
+type TelemetryConfig = Readonly<{ sampleRate: number; beacon: string }>;
+
+function beaconUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value, window.location.href);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseConfig(config: unknown): TelemetryConfig | null {
+  if (typeof config !== "object" || config === null || !("sampleRate" in config)) return null;
+  const { sampleRate: rate } = config;
+  if (typeof rate !== "number" || rate < 0 || rate > 1) return null;
+  if (!("beaconUrl" in config)) return { sampleRate: rate, beacon: new URL(BEACON_PATH, window.location.href).href };
+  const beacon = beaconUrl(config.beaconUrl);
+  return beacon === null ? null : { sampleRate: rate, beacon };
+}
+
+async function loadConfig(): Promise<TelemetryConfig | null> {
   try {
     const response = await fetch(new URL(CONFIG_PATH, window.location.href).href, { cache: "no-store" });
     if (!response.ok) return null;
-    const config: unknown = await response.json();
-    if (typeof config !== "object" || config === null || !("sampleRate" in config)) return null;
-    const { sampleRate: rate } = config;
-    return typeof rate === "number" && rate >= 0 && rate <= 1 ? rate : null;
+    return parseConfig(await response.json());
   } catch {
     return null;
   }
@@ -84,8 +102,8 @@ type Sampling = Readonly<{ kind: "waiting" }> | Readonly<{ kind: "measuring"; re
 
 export async function startPerfTelemetry(region: OcellusRegion): Promise<void> {
   if (!perfDataAllowed()) return;
-  const rate = await sampleRate();
-  if (rate === null || Math.random() >= rate) return;
+  const config = await loadConfig();
+  if (config === null || Math.random() >= config.sampleRate) return;
   const { world } = region;
   let sampling: Sampling = { kind: "waiting" };
   let seenTick = world.globalTickCounter;
@@ -94,8 +112,8 @@ export async function startPerfTelemetry(region: OcellusRegion): Promise<void> {
     if (sampling.kind !== "measuring") return;
     const { recorder } = sampling;
     sampling = { kind: "done" };
-    const summary = perfDataAllowed() ? summarise(region, recorder, rate) : null;
-    if (summary) navigator.sendBeacon(new URL(BEACON_PATH, window.location.href).href, JSON.stringify(summary));
+    const summary = perfDataAllowed() ? summarise(region, recorder, config.sampleRate) : null;
+    if (summary) navigator.sendBeacon(config.beacon, JSON.stringify(summary));
   };
 
   const onFrame = (now: number) => {

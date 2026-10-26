@@ -21,12 +21,13 @@ class ConfigResponse extends Response {
   }
 }
 
-function network(sampleRate: number | null) {
+function network(sampleRate: number | null, beaconUrl?: string) {
   const beacons: Beacon[] = [];
   const offline = globalThis.fetch;
   vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     if (String(input).endsWith("/telemetry.json")) {
-      return Promise.resolve(sampleRate === null ? new Response("", { status: 404 }) : new ConfigResponse({ sampleRate }));
+      const config = beaconUrl === undefined ? { sampleRate } : { sampleRate, beaconUrl };
+      return Promise.resolve(sampleRate === null ? new Response("", { status: 404 }) : new ConfigResponse(config));
     }
     return offline(input, init);
   });
@@ -168,5 +169,25 @@ describe("Performance telemetry", () => {
       expect.objectContaining({ end: "left", stage: "inner-void", runTicks: 14, frames: 562, lateTicks: 0 }),
     ]);
     expect(shippedSampleRate() * TODAYS_DAILY_LOADS * beacons.length).toBeLessThanOrEqual(DAILY_SUMMARY_BUDGET);
+  });
+
+  test("a configured beacon URL takes the summary, so a host that serves the page without the Worker can point at one", async () => {
+    const beacons = network(1, "https://sink.example.test/t");
+    const { playUntil, runEnded, close } = openRun(DEATH_RUN);
+    await playUntil(runEnded);
+    await play(3 * TICK_MS);
+    window.dispatchEvent(new Event("pagehide"));
+    close();
+
+    expect(beacons.map(({ url }) => url)).toEqual(["https://sink.example.test/t"]);
+  });
+
+  test("the shipped telemetry.json names an absolute https beacon at /t, so a host without the Worker still reaches one", () => {
+    const config: unknown = JSON.parse(readFileSync(resolve(__dirname, "../telemetry.json"), "utf8"));
+    if (typeof config !== "object" || config === null || !("beaconUrl" in config) || typeof config.beaconUrl !== "string") {
+      throw new Error("src/telemetry.json has no string beaconUrl");
+    }
+    const shipped = new URL(config.beaconUrl);
+    expect({ protocol: shipped.protocol, path: shipped.pathname }).toEqual({ protocol: "https:", path: "/t" });
   });
 });

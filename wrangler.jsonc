@@ -1,5 +1,5 @@
 {
-  "name": "archive-ocellus-trainer",
+  "name": "tikky-takka-trainer",
   "main": "src/worker/worker.ts",
   "compatibility_date": "2026-10-19",
   "workers_dev": true,

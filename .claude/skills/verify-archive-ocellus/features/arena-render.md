@@ -21,7 +21,7 @@ Preconditions:
 
 - The baseline preconditions in the index hold, except that the page has not been opened yet.
 
-- **Load.** Open the page. Run `agent-browser open http://127.0.0.1:8002/`. The title is `Archive Ocellus Trainer`.
+- **Load.** Open the page. Run `agent-browser open http://127.0.0.1:8002/`. The title is `Tikky Takka Trainer`.
 - **Ticking.** Wait for the countdown to finish. Run `agent-browser wait --fn "window.__archiveOcellusProbe?.snapshot().tick >= 8" --timeout 90000`. The command exits 0.
 - **Spawn state.** Read the state. Run `agent-browser --json eval "window.__archiveOcellusProbe.snapshot()"`. `data.result.player` is `{"x":5,"y":1}` and `data.result.ticking` is `true`.
 - **Proof.** Capture the screen. Run `agent-browser screenshot "$PWD/.verify/<run>/arena.png"`. The screenshot shows the checkered platform with black beyond its edges, the olive walkway on the left running up past the boss, its floor side straight from the end of the straight run to the jut and stepped past it, the censer hanging on its chain beside the boss, the player in Masori armour with the Twisted Bow at the centre, the boss ahead on his 3x3, and the HUD at the right edge.
